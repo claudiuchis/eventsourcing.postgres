@@ -23,10 +23,13 @@ public class AllStreamSubscription : EventSubscription<AllStreamSubscriptionOpti
     private bool doContinue { get => !_threadCancellationToken.Token.IsCancellationRequested; }
     public AllStreamSubscription(
         IDbConnection       conn,
+        string              subscriptionId,
         ICheckpointStore    checkpointStore,
         ConsumePipe         consumePipe
     ) : base(
-        new AllStreamSubscriptionOptions {},
+        new AllStreamSubscriptionOptions {
+            SubscriptionId = subscriptionId
+        },
         consumePipe
     ) 
     {
