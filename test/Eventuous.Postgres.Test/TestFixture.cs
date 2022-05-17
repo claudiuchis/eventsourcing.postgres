@@ -20,7 +20,7 @@ public class TestFixture: IDisposable {
         Db.Open();
         EventStoreOptions = new PostgresEventStoreOptions { SchemaName = "test"};
         EventStore = new PostgresEventStore(Db, EventStoreOptions);
-        SchemaSetup.Setup(Db, options).Wait();
+        SchemaSetup.Setup(Db, EventStoreOptions).Wait();
         CheckpointStore = new PostgresCheckpointStore(Db, new PostgresCheckpointStoreOptions { SchemaName = "test"});
 
         TypeMap.AddType<AccountCreated>("AccountCreated");
