@@ -39,8 +39,10 @@ public static class Serializer {
             eventType,
             stream,
             (int)streamEvent.Position + 1,
+            (int)streamEvent.Position + 1,
             Encoding.UTF8.GetString(payload),
-            Encoding.UTF8.GetString(metaSerializer.Serialize(streamEvent.Metadata))
+            Encoding.UTF8.GetString(metaSerializer.Serialize(streamEvent.Metadata)),
+            DateTime.UtcNow
         );
     }
 

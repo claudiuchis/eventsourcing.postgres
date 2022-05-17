@@ -61,7 +61,7 @@ public class PostgresEventStore: IEventReader, IEventWriter {
         CancellationToken cancellationToken
     ) {
         var sql = $@"
-            SELECT eventId, eventType, stream, streamPosition, payload, metadata 
+            SELECT eventId, eventType, stream, streamPosition, globalPosition, payload, metadata, created 
             FROM {_options.SchemaName}.events 
             WHERE stream = '{stream}' 
             AND streamPosition >= {start.Value} 

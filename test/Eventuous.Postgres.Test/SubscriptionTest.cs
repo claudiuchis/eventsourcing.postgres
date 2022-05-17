@@ -23,7 +23,13 @@ public class SubscriptionTest : IClassFixture<TestFixture>
         var consumePipe = new ConsumePipe();
         consumePipe.AddDefaultConsumer(new [] { mock.Object });
         var subscriptionId = "test-all-stream";
-        var subscription = new AllStreamSubscription(fixture.Db, subscriptionId, fixture.CheckpointStore, consumePipe);
+        var subscription = new AllStreamSubscription(fixture.Db, subscriptionId, fixture.CheckpointStore, consumePipe, fixture.EventStoreOptions);
+        var cancellationTokenSource = new CancellationTokenSource();
+
+        await subscription.Subscribe(
+            subscriptionId => {},
+            (subscriptionId, dropReason, exception) => {}, 
+            cancellationTokenSource.Token);
 
         var stream = new StreamName(Guid.NewGuid().ToString());
         object[] events = new object[] {new AccountCreated(Guid.NewGuid().ToString()), new AccountCredited(100), new AccountDebited(50)};

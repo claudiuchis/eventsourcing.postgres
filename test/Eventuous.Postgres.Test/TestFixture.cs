@@ -18,9 +18,9 @@ public class TestFixture: IDisposable {
 
         Db = new NpgsqlConnection(connString);
         Db.Open();
-        var options = new PostgresEventStoreOptions { SchemaName = "test"};
-        EventStore = new PostgresEventStore(Db, options);
-        //SchemaSetup.Setup(Db, options).Wait();
+        EventStoreOptions = new PostgresEventStoreOptions { SchemaName = "test"};
+        EventStore = new PostgresEventStore(Db, EventStoreOptions);
+        SchemaSetup.Setup(Db, options).Wait();
         CheckpointStore = new PostgresCheckpointStore(Db, new PostgresCheckpointStoreOptions { SchemaName = "test"});
 
         TypeMap.AddType<AccountCreated>("AccountCreated");
@@ -36,4 +36,5 @@ public class TestFixture: IDisposable {
     public IDbConnection Db { get; private set; }
     public PostgresEventStore EventStore { get; private set; }
     public ICheckpointStore CheckpointStore { get; private set; }
+    public PostgresEventStoreOptions EventStoreOptions { get; private set; }
 }

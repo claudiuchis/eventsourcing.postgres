@@ -19,15 +19,15 @@ public class PostgresCheckpointStore: ICheckpointStore {
     }
     public async ValueTask<Checkpoint> GetLastCheckpoint(string checkpointId, CancellationToken cancellationToken)
     {
-        var sql = @"
+        var sql = $@"
             SELECT position 
-            FROM @schema.checkpoints 
-            WHERE id = @checkpointId
+            FROM {_options.SchemaName}.checkpoints 
+            WHERE id = '{checkpointId}'
         ";
-        var position = (await _conn.QueryAsync<ulong>(sql, new { schema = _options.SchemaName, checkpointId = checkpointId}))
-            .First();
 
-        return new Checkpoint(checkpointId, position);
+        var position = (await _conn.QueryAsync<ulong>(sql));
+
+        return new Checkpoint(checkpointId, position.Any() ? position.First() : 0);
     }
 
     public async ValueTask<Checkpoint> StoreCheckpoint(Checkpoint checkpoint, bool force, CancellationToken cancellationToken)
