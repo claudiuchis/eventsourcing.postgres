@@ -30,10 +30,10 @@ public class TestFixture: IDisposable {
 
     public void Dispose()
     {
-
+        Db.Close();
     }
 
-    public IDbConnection Db { get; private set; }
+    public NpgsqlConnection Db { get; private set; }
     public PostgresEventStore EventStore { get; private set; }
     public ICheckpointStore CheckpointStore { get; private set; }
     public PostgresEventStoreOptions EventStoreOptions { get; private set; }

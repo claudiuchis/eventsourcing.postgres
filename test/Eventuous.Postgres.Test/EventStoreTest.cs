@@ -6,12 +6,17 @@ using System.Linq;
 
 namespace Eventuous.Postgres.Test;
 
-public class EventStoreTest : IClassFixture<TestFixture>
+public class EventStoreTest : IDisposable
 {
     TestFixture fixture;
-    public EventStoreTest(TestFixture fixture) {
-        this.fixture = fixture;
+    public EventStoreTest() {
+        fixture = new TestFixture();
     }
+
+    public void Dispose()
+    {
+        fixture.Dispose();
+    } 
 
     [Fact]
     public async Task StoreEvents()

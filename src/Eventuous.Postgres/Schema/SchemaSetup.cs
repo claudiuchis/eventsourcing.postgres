@@ -26,8 +26,8 @@ public static class SchemaSetup {
                 UNIQUE(stream, streamPosition)
             );
 
-            CREATE INDEX ON events (stream);    
-            CREATE INDEX ON events (globalPosition);    
+            CREATE INDEX IF NOT EXISTS events_stream_idx ON events (stream);    
+            CREATE INDEX IF NOT EXISTS events_globalposition_idx ON events (globalPosition);    
 
             CREATE TABLE IF NOT EXISTS checkpoints (
                 id varchar,

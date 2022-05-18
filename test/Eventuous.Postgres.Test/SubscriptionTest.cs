@@ -6,12 +6,20 @@ using Moq;
 
 namespace Eventuous.Postgres.Test;
 
-public class SubscriptionTest : IClassFixture<TestFixture>
+public class SubscriptionTest : IDisposable
 {
-    TestFixture fixture;
-    public SubscriptionTest(TestFixture fixture) {
-        this.fixture = fixture;
+    TestFixture fixture1;
+    TestFixture fixture2;
+    public SubscriptionTest() {
+        fixture1 = new TestFixture();
+        fixture2 = new TestFixture();
     }
+
+    public void Dispose()
+    {
+        fixture1.Dispose();
+        fixture2.Dispose();
+    } 
 
     //[Fact]
     public async Task SubscribeToAllStream()
@@ -23,7 +31,7 @@ public class SubscriptionTest : IClassFixture<TestFixture>
         var consumePipe = new ConsumePipe();
         consumePipe.AddDefaultConsumer(new [] { mock.Object });
         var subscriptionId = "test-all-stream";
-        var subscription = new AllStreamSubscription(fixture.Db, subscriptionId, fixture.CheckpointStore, consumePipe, fixture.EventStoreOptions);
+        var subscription = new AllStreamSubscription(fixture1.Db, subscriptionId, fixture1.CheckpointStore, consumePipe, fixture1.EventStoreOptions);
         var cancellationTokenSource = new CancellationTokenSource();
 
         await subscription.Subscribe(
@@ -45,8 +53,9 @@ public class SubscriptionTest : IClassFixture<TestFixture>
         )).ToArray();
 
         // act
-        await fixture.EventStore.AppendEvents(stream, ExpectedStreamVersion.NoStream, streamEvents, CancellationToken.None);
-        
+        await fixture2.EventStore.AppendEvents(stream, ExpectedStreamVersion.NoStream, streamEvents, CancellationToken.None);
+
+        Thread.Sleep(2000);        
         // assert
         mock.Verify(handler => handler.HandleEvent(null), Times.AtLeastOnce());
     }

@@ -22,6 +22,7 @@ public class AllStreamSubscription : EventSubscription<AllStreamSubscriptionOpti
     readonly CancellationTokenSource _threadCancellationToken;
     readonly PostgresEventStoreOptions _eventStoreOptions;
     private bool doContinue { get => !_threadCancellationToken.Token.IsCancellationRequested; }
+    private Checkpoint _lastCheckpoint;
     public AllStreamSubscription(
         IDbConnection       conn,
         string              subscriptionId,
@@ -40,9 +41,11 @@ public class AllStreamSubscription : EventSubscription<AllStreamSubscriptionOpti
         _checkpointStore = checkpointStore;
         _threadCancellationToken = new CancellationTokenSource();
         _workerThread = new Thread(new ThreadStart(DoWork));
+        _lastCheckpoint = new Checkpoint(subscriptionId, 0);
     }
 
     protected override async ValueTask Subscribe(CancellationToken cancellationToken) {
+        _lastCheckpoint = await _checkpointStore.GetLastCheckpoint(Options.SubscriptionId, cancellationToken);
         _workerThread.Start();
     }
 
@@ -82,21 +85,23 @@ public class AllStreamSubscription : EventSubscription<AllStreamSubscriptionOpti
 
     private async Task<bool> FetchData(CancellationToken cancellationToken) {
 
-        var checkpoint = await _checkpointStore.GetLastCheckpoint(Options.SubscriptionId, cancellationToken);
-
         var sql = $@"
             SELECT eventId, eventType, stream, streamPosition, globalPosition, payload, metadata, created
             FROM {_eventStoreOptions.SchemaName}.events
-            WHERE globalPosition > {checkpoint.Position} 
+            WHERE globalPosition > {_lastCheckpoint.Position} 
             ORDER BY globalPosition ASC
             LIMIT {Options.BatchCount}
         ";
-
         var persistedEvents = await _conn.QueryAsync<PersistedEvent>(sql);
 
         if (!persistedEvents.Any()) return false;
         
-        persistedEvents.Select( async (evt) => await HandleEvent(evt, cancellationToken));
+        persistedEvents.Select( async (evt) =>  {
+            await HandleEvent(evt, cancellationToken);
+            _lastCheckpoint = new Checkpoint(Options.SubscriptionId, (ulong)evt.globalPosition);
+            await _checkpointStore.StoreCheckpoint(_lastCheckpoint, false, cancellationToken);
+            
+        });
 
         return true;
 
