@@ -32,13 +32,14 @@ public class PostgresCheckpointStore: ICheckpointStore {
 
     public async ValueTask<Checkpoint> StoreCheckpoint(Checkpoint checkpoint, bool force, CancellationToken cancellationToken)
     {
+        var position = checkpoint.Position ?? 0;
         var sql = $@"
-            INSERT INTO @schema.checkpoints (id, position)
-            VALUES ('@checkpointId', @position)
+            INSERT INTO {_options.SchemaName}.checkpoints (id, position)
+            VALUES ('{checkpoint.Id}', {position})
             ON CONFLICT (id) DO UPDATE
-                SET position = @position
+                SET position = {position}
         ";
-        await _conn.ExecuteAsync(sql, new { schema = _options.SchemaName, checkpointId = checkpoint.Id, position = checkpoint.Position});
+        await _conn.ExecuteAsync(sql);
         return checkpoint;
     }
 }

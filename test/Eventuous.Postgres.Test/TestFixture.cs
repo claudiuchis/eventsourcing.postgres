@@ -14,13 +14,13 @@ namespace Eventuous.Postgres.Test;
 public class TestFixture: IDisposable {
     public TestFixture()
     {
-        var connString = "Host=localhost;Username=postgres;Password=changeme;Database=postgres";
+        ConnectionString = "Host=localhost;Username=postgres;Password=changeme;Database=postgres";
 
-        Db = new NpgsqlConnection(connString);
+        Db = new NpgsqlConnection(ConnectionString);
         Db.Open();
         EventStoreOptions = new PostgresEventStoreOptions { SchemaName = "test"};
         EventStore = new PostgresEventStore(Db, EventStoreOptions);
-        SchemaSetup.Setup(Db, EventStoreOptions).Wait();
+        //SchemaSetup.Setup(Db, EventStoreOptions).Wait();
         CheckpointStore = new PostgresCheckpointStore(Db, new PostgresCheckpointStoreOptions { SchemaName = "test"});
 
         TypeMap.AddType<AccountCreated>("AccountCreated");
@@ -37,4 +37,5 @@ public class TestFixture: IDisposable {
     public PostgresEventStore EventStore { get; private set; }
     public ICheckpointStore CheckpointStore { get; private set; }
     public PostgresEventStoreOptions EventStoreOptions { get; private set; }
+    public string ConnectionString;
 }

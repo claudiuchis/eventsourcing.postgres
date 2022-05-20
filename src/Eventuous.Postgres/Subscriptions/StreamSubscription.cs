@@ -14,10 +14,11 @@ using Npgsql;
 
 namespace Eventuous.Postgres.Subscriptions;
 
-public class AllStreamSubscription : PostgresSubscriptionBase<AllStreamSubscriptionOptions> 
+public class StreamSubscription : PostgresSubscriptionBase<StreamSubscriptionOptions> 
 {
-    public AllStreamSubscription(
+    public StreamSubscription(
         string              connectionString,
+        StreamName          streamName,
         string              subscriptionId,
         ICheckpointStore    checkpointStore,
         ConsumePipe         consumePipe,
@@ -26,8 +27,9 @@ public class AllStreamSubscription : PostgresSubscriptionBase<AllStreamSubscript
         connectionString,
         checkpointStore,
         consumePipe,
-        new AllStreamSubscriptionOptions {
+        new StreamSubscriptionOptions {
             SubscriptionId = subscriptionId,
+            StreamName = streamName,
             SchemaName = schemaName
         }
     ) {}
@@ -37,8 +39,9 @@ public class AllStreamSubscription : PostgresSubscriptionBase<AllStreamSubscript
         var sql = $@"
             SELECT eventId, eventType, stream, streamPosition, globalPosition, payload, metadata, created
             FROM {Options.SchemaName}.events
-            WHERE globalPosition > {LastCheckpoint.Position} 
-            ORDER BY globalPosition ASC
+            WHERE stream = '{Options.StreamName}'  
+            AND streamPosition > {LastCheckpoint.Position} 
+            ORDER BY streamPosition ASC
             LIMIT {Options.BatchCount}
         ";
         var persistedEvents = await FetchQuery(sql);
