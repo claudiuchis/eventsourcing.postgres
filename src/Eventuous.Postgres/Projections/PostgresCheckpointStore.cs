@@ -32,7 +32,7 @@ public class PostgresCheckpointStore: ICheckpointStore {
 
     public async ValueTask<Checkpoint> StoreCheckpoint(Checkpoint checkpoint, bool force, CancellationToken cancellationToken)
     {
-        var position = checkpoint.Position ?? 0;
+        var position = unchecked((long)(checkpoint.Position ?? 0));
         var sql = $@"
             INSERT INTO {_options.SchemaName}.checkpoints (id, position)
             VALUES ('{checkpoint.Id}', {position})

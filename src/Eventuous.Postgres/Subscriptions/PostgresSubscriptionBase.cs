@@ -11,15 +11,13 @@ using Eventuous.Subscriptions.Filters;
 using Eventuous.Subscriptions.Context;
 using Dapper;
 using Eventuous.Postgres.Store;
-using Npgsql;
 
 namespace Eventuous.Postgres.Subscriptions;
 
 public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
     where T: PostgresSubscriptionOptions
 {
-    readonly NpgsqlConnection _fetchConn;
-    readonly NpgsqlConnection _notifyConn;
+    readonly IDbConnection _conn;
     readonly ICheckpointStore _checkpointStore;
     readonly Thread _workerThread;
     readonly CancellationTokenSource _threadCancellationToken;
@@ -30,7 +28,7 @@ public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
         get => _lastCheckpoint; 
     }
     protected PostgresSubscriptionBase(
-        string              connectionString,
+        IDbConnection       conn,
         ICheckpointStore    checkpointStore,
         ConsumePipe         consumePipe,
         T options
@@ -39,10 +37,7 @@ public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
         consumePipe
     ) 
     {
-        _fetchConn = new NpgsqlConnection(connectionString);
-        _fetchConn.Open();
-        _notifyConn = new NpgsqlConnection(connectionString);
-        _notifyConn.Open();
+        _conn = conn;
         _options = options;
         _checkpointStore = checkpointStore;
         _threadCancellationToken = new CancellationTokenSource();
@@ -57,55 +52,47 @@ public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
 
     protected override async ValueTask Unsubscribe(CancellationToken cancellationToken) {
         _threadCancellationToken.Cancel();
-        var sql = $"UNLISTEN events_table";
-        await _fetchConn.ExecuteAsync(sql);
     }
 
-    protected async ValueTask StoreCheckpoint(Checkpoint checkpoint, CancellationToken cancellationToken)
-    {
-        await _checkpointStore.StoreCheckpoint(checkpoint, false, cancellationToken);        
-    }
-
-    protected async Task HandleEvent(
+    private async Task HandleEvent(
         PersistedEvent pe,
         CancellationToken ct
     )
         => await Handler(CreateContext(pe, ct)).NoContext();
 
-    protected async ValueTask<PersistedEvent[]> FetchQuery(string sql)
-        => (await _fetchConn.QueryAsync<PersistedEvent>(sql)).ToArray();
-
     private async void DoWork() {
 
         var cancellationToken = _threadCancellationToken.Token;
 
-        if (doContinue) await Catchup(cancellationToken);
-
-        if (doContinue) await Listen(cancellationToken);
-    }
-    private async Task Catchup(CancellationToken cancellationToken) 
-    {
-        while(doContinue && await FetchData(cancellationToken)) {}
-    }
-
-    private async Task Listen(CancellationToken cancellationToken) {
-
-        _notifyConn.Notification += async (o, e) => await FetchData(cancellationToken); 
-
-        var sql = $"LISTEN events_table";
-        using (var cmd = new NpgsqlCommand(sql, _notifyConn)) 
-        {
-            await cmd.ExecuteNonQueryAsync();
-        }
-
         while (doContinue) {
-            _notifyConn.Wait(); 
-        }        
+
+            var result = await FetchData(cancellationToken);
+            if (!result)
+            {
+                Task.Delay(1000).Wait();
+            }
+        }
     }
 
-    protected virtual Task<bool> FetchData(CancellationToken cancellationToken) => default;
+    protected virtual string GetQuery() => default;
 
-    protected IMessageConsumeContext CreateContext(PersistedEvent persistedEvent, CancellationToken cancellationToken) {
+    private async Task<bool> FetchData(CancellationToken cancellationToken) {
+        var sql = GetQuery();
+
+        var persistedEvents = await _conn.QueryAsync<PersistedEvent>(sql);
+
+        if (!persistedEvents.Any()) return false;
+        
+        foreach(var evt in persistedEvents) {
+            await HandleEvent(evt, cancellationToken);
+            var checkpoint = new Checkpoint(Options.SubscriptionId, (ulong)evt.globalPosition);
+            await _checkpointStore.StoreCheckpoint(checkpoint, false, cancellationToken); 
+        };
+
+        return true;
+    }
+
+    private IMessageConsumeContext CreateContext(PersistedEvent persistedEvent, CancellationToken cancellationToken) {
         var streamEvent = persistedEvent.AsStreamEvent();
         return new MessageConsumeContext(
             persistedEvent.eventId,

@@ -1,16 +1,21 @@
+using System.Data;
 using Eventuous.Postgres.Subscriptions;
 using Eventuous.Subscriptions.Filters;
 using Eventuous.Subscriptions;
 using Eventuous.Subscriptions.Context;
 using Moq;
+using Npgsql;
 
 namespace Eventuous.Postgres.Test;
 
 public class SubscriptionTest : IDisposable
 {
     TestFixture fixture;
+    IDbConnection conn;
     public SubscriptionTest() {
         fixture = new TestFixture();
+        conn = new NpgsqlConnection(fixture.ConnectionString);
+        conn.Open();
     }
 
     public void Dispose()
@@ -18,7 +23,7 @@ public class SubscriptionTest : IDisposable
         fixture.Dispose();
     } 
 
-    //[Fact]
+    [Fact]
     public async Task SubscribeToAllStream()
     {
         // arrange
@@ -30,7 +35,7 @@ public class SubscriptionTest : IDisposable
         var subscriptionId = "test-all-stream";
 
         var subscription = new AllStreamSubscription(
-            fixture.ConnectionString, 
+            conn, 
             subscriptionId, 
             fixture.CheckpointStore, 
             consumePipe, 
@@ -78,7 +83,7 @@ public class SubscriptionTest : IDisposable
         var subscriptionId = streamId;
 
         var subscription = new StreamSubscription(
-            fixture.ConnectionString, 
+            conn, 
             stream, 
             subscriptionId, 
             fixture.CheckpointStore, 
