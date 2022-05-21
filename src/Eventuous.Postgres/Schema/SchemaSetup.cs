@@ -34,18 +34,6 @@ public static class SchemaSetup {
                 position bigint,
                 PRIMARY KEY(id)
             );
-
-            CREATE OR REPLACE FUNCTION fn_events_table_modified() RETURNS TRIGGER AS $psql$
-            BEGIN
-            PERFORM pg_notify(
-                'events_table',
-                ''
-            );return new;
-            end;$psql$ language plpgsql;
-            
-            CREATE OR REPLACE TRIGGER events_table_updated BEFORE
-            INSERT
-            ON events FOR EACH ROW EXECUTE procedure fn_events_table_modified();        
         ";
     
         await conn.ExecuteAsync(sql);
