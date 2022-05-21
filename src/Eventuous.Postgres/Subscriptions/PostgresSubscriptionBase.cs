@@ -72,6 +72,7 @@ public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
                 Task.Delay(1000).Wait();
             }
         }
+        Console.WriteLine("Worker thread completed");
     }
 
     protected virtual string GetQuery() => default;
@@ -85,8 +86,8 @@ public abstract class PostgresSubscriptionBase<T> : EventSubscription<T>
         
         foreach(var evt in persistedEvents) {
             await HandleEvent(evt, cancellationToken);
-            var checkpoint = new Checkpoint(Options.SubscriptionId, (ulong)evt.globalPosition);
-            await _checkpointStore.StoreCheckpoint(checkpoint, false, cancellationToken); 
+            _lastCheckpoint = new Checkpoint(Options.SubscriptionId, unchecked((ulong)evt.globalPosition));
+            await _checkpointStore.StoreCheckpoint(_lastCheckpoint, false, cancellationToken); 
         };
 
         return true;

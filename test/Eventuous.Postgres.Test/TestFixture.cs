@@ -22,6 +22,7 @@ public class TestFixture: IDisposable {
         ConnCheckpoint.Open();
         EventStoreOptions = new PostgresEventStoreOptions { SchemaName = "test"};
         EventStore = new PostgresEventStore(ConnStore, EventStoreOptions);
+        AggregateStore = new AggregateStore(EventStore, EventStore);
         //SchemaSetup.Setup(Db, EventStoreOptions).Wait();
         CheckpointStore = new PostgresCheckpointStore(ConnCheckpoint, new PostgresCheckpointStoreOptions { SchemaName = "test"});
 
@@ -41,5 +42,6 @@ public class TestFixture: IDisposable {
     public PostgresEventStore EventStore { get; private set; }
     public ICheckpointStore CheckpointStore { get; private set; }
     public PostgresEventStoreOptions EventStoreOptions { get; private set; }
+    public AggregateStore AggregateStore { get; private set; }
     public string ConnectionString;
 }

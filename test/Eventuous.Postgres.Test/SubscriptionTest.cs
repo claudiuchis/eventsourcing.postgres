@@ -3,6 +3,7 @@ using Eventuous.Postgres.Subscriptions;
 using Eventuous.Subscriptions.Filters;
 using Eventuous.Subscriptions;
 using Eventuous.Subscriptions.Context;
+using Eventuous.Subscriptions.Checkpoints;
 using Moq;
 using Npgsql;
 
@@ -23,8 +24,19 @@ public class SubscriptionTest : IDisposable
         fixture.Dispose();
     } 
 
+    //[Fact]
+    public async Task CheckpointStoreTest() {
+        // arrange
+        var checkpoint = new Checkpoint("test", 20);
+        // act 
+        await fixture.CheckpointStore.StoreCheckpoint(checkpoint, false, CancellationToken.None);
+        var storedCheckpoint = await fixture.CheckpointStore.GetLastCheckpoint(checkpoint.Id, CancellationToken.None);
+        // assert
+        Assert.Equal(checkpoint.Position, storedCheckpoint.Position);
+    }
+
     [Fact]
-    public async Task SubscribeToAllStream()
+    public async Task AllStreamSubscription_Test()
     {
         // arrange
         var mock = new Mock<IEventHandler>();
@@ -63,14 +75,16 @@ public class SubscriptionTest : IDisposable
 
         // act
         await fixture.EventStore.AppendEvents(stream, ExpectedStreamVersion.NoStream, streamEvents, CancellationToken.None);
+        Thread.Sleep(1000);        
+        await subscription.Unsubscribe(subscriptionId => {}, CancellationToken.None);        
+        Thread.Sleep(1000);
 
-        Thread.Sleep(2000);        
         // assert
         mock.Verify(handler => handler.HandleEvent(It.IsAny<IMessageConsumeContext>()), Times.AtLeastOnce());
     }
 
-    //[Fact]
-    public async Task SubscribeToStream()
+    [Fact]
+    public async Task StreamSubscription_Test()
     {
         // arrange
         var mock = new Mock<IEventHandler>();
@@ -101,7 +115,7 @@ public class SubscriptionTest : IDisposable
         object[] events = new object[] {new AccountCreated(Guid.NewGuid().ToString()), new AccountCredited(100), new AccountDebited(50)};
         var position = 0;
 
-        Thread.Sleep(2000);        
+        Thread.Sleep(100);        
 
         StreamEvent[] streamEvents = events.Select( evt => 
             new StreamEvent (
@@ -114,8 +128,10 @@ public class SubscriptionTest : IDisposable
 
         // act
         await fixture.EventStore.AppendEvents(stream, ExpectedStreamVersion.NoStream, streamEvents, CancellationToken.None);
+        Thread.Sleep(1000);
+        await subscription.Unsubscribe(subscriptionId => {}, CancellationToken.None);        
+        Thread.Sleep(1000);
 
-        Thread.Sleep(2000);        
         // assert
         mock.Verify(handler => handler.HandleEvent(It.IsAny<IMessageConsumeContext>()), Times.Exactly(3));
     }

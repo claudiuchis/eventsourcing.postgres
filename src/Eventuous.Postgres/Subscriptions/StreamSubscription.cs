@@ -40,8 +40,8 @@ public class StreamSubscription : PostgresSubscriptionBase<StreamSubscriptionOpt
             SELECT eventId, eventType, stream, streamPosition, globalPosition, payload, metadata, created
             FROM {Options.SchemaName}.events
             WHERE stream = '{Options.StreamName}'  
-            AND streamPosition > {LastCheckpoint.Position} 
-            ORDER BY streamPosition ASC
+            AND globalPosition > {LastCheckpoint.Position} 
+            ORDER BY globalPosition ASC
             LIMIT {Options.BatchCount}
         ";
     }
