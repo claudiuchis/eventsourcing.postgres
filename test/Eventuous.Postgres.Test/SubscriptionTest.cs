@@ -8,13 +8,13 @@ using Moq;
 using Npgsql;
 
 namespace Eventuous.Postgres.Test;
-
+[Collection("Test collection")]
 public class SubscriptionTest : IDisposable
 {
     TestFixture fixture;
     IDbConnection conn;
-    public SubscriptionTest() {
-        fixture = new TestFixture();
+    public SubscriptionTest(TestFixture fixture) {
+        this.fixture = fixture;
         conn = new NpgsqlConnection(fixture.ConnectionString);
         conn.Open();
     }
@@ -27,7 +27,7 @@ public class SubscriptionTest : IDisposable
     //[Fact]
     public async Task CheckpointStoreTest() {
         // arrange
-        var checkpoint = new Checkpoint("test", 20);
+        var checkpoint = new Checkpoint("test-checkpoint", 20);
         // act 
         await fixture.CheckpointStore.StoreCheckpoint(checkpoint, false, CancellationToken.None);
         var storedCheckpoint = await fixture.CheckpointStore.GetLastCheckpoint(checkpoint.Id, CancellationToken.None);

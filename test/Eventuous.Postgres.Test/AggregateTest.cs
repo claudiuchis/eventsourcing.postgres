@@ -6,11 +6,12 @@ using System.Linq;
 
 namespace Eventuous.Postgres.Test;
 
+[Collection("Test collection")]
 public class AggregateTest : IDisposable
 {
     TestFixture fixture;
-    public AggregateTest() {
-        fixture = new TestFixture();
+    public AggregateTest(TestFixture fixture) {
+        this.fixture = fixture;
     }
 
     public void Dispose()

@@ -1,13 +1,8 @@
-using System;
-using System.Data;
 using Npgsql;
-using Eventuous;
 using Eventuous.Postgres.Store;
 using Eventuous.Postgres.Schema;
 using Eventuous.Subscriptions.Checkpoints;
 using Eventuous.Postgres.Projections;
-using Eventuous.Postgres.Subscriptions;
-using Eventuous.Subscriptions.Filters; 
 
 namespace Eventuous.Postgres.Test;
 
@@ -15,16 +10,19 @@ public class TestFixture: IDisposable {
     public TestFixture()
     {
         ConnectionString = "Host=localhost;Username=postgres;Password=changeme;Database=postgres";
+        var schema = "test";
 
         ConnStore = new NpgsqlConnection(ConnectionString);
         ConnStore.Open();
         ConnCheckpoint = new NpgsqlConnection(ConnectionString);
         ConnCheckpoint.Open();
-        EventStoreOptions = new PostgresEventStoreOptions { SchemaName = "test"};
+        EventStoreOptions = new PostgresEventStoreOptions { SchemaName = schema};
         EventStore = new PostgresEventStore(ConnStore, EventStoreOptions);
         AggregateStore = new AggregateStore(EventStore, EventStore);
-        //SchemaSetup.Setup(Db, EventStoreOptions).Wait();
-        CheckpointStore = new PostgresCheckpointStore(ConnCheckpoint, new PostgresCheckpointStoreOptions { SchemaName = "test"});
+        CheckpointStore = new PostgresCheckpointStore(ConnCheckpoint, new PostgresCheckpointStoreOptions { SchemaName = schema});
+
+        // create the database schema
+        SchemaSetup.Setup(ConnStore, schema).Wait();
 
         TypeMap.AddType<AccountCreated>("AccountCreated");
         TypeMap.AddType<AccountCredited>("AccountCredited");
@@ -44,4 +42,12 @@ public class TestFixture: IDisposable {
     public PostgresEventStoreOptions EventStoreOptions { get; private set; }
     public AggregateStore AggregateStore { get; private set; }
     public string ConnectionString;
+}
+
+[CollectionDefinition("Test collection")]
+public class DatabaseCollection : ICollectionFixture<TestFixture>
+{
+    // This class has no code, and is never created. Its purpose is simply
+    // to be the place to apply [CollectionDefinition] and all the
+    // ICollectionFixture<> interfaces.
 }

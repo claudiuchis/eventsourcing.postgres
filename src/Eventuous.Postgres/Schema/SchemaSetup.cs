@@ -6,12 +6,12 @@ using Eventuous.Postgres.Store;
 namespace Eventuous.Postgres.Schema;
 
 public static class SchemaSetup {
-    public async static Task Setup(IDbConnection conn, PostgresEventStoreOptions options) {
+    public async static Task Setup(IDbConnection conn, string schema) {
 
         var sql = 
             $@"
-            CREATE SCHEMA IF NOT EXISTS {options.SchemaName};
-            SET search_path TO {options.SchemaName};
+            CREATE SCHEMA IF NOT EXISTS {schema};
+            SET search_path TO {schema};
 
             -- create the events table
             CREATE TABLE IF NOT EXISTS events (

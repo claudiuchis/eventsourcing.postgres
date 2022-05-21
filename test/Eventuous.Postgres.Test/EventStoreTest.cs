@@ -6,11 +6,12 @@ using System.Linq;
 
 namespace Eventuous.Postgres.Test;
 
+[Collection("Test collection")]
 public class EventStoreTest : IDisposable
 {
     TestFixture fixture;
-    public EventStoreTest() {
-        fixture = new TestFixture();
+    public EventStoreTest(TestFixture fixture) {
+        this.fixture = fixture;
     }
 
     public void Dispose()
